@@ -1,17 +1,20 @@
 categories:
 - 翻译
+
 tags:
 - 思考
+
 title: 生活，不止于幸福
 ---
 
 原文作者：[Emily Esfahani Smith][1]
+
 原文网址：http://www.theatlantic.com/health/archive/2013/01/theres-more-to-life-than-being-happy/266805/
 
 译者：RussellLuo
 
 
-生活的意义，来自对高于幸福的事物的追求。
+**生活的意义，来自对高于幸福的事物的追求。**
 
 ![题图](http://cdn.theatlantic.com/assets/media/img/mt/2014/10/shutterstock_116993836/lead_large.jpg)
 
