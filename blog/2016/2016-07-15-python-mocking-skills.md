@@ -41,6 +41,8 @@ def sigh():
 测试：
 
 ```python
+>>> from mock import MagicMock, patch
+>>> from example import foo, bar, wow, sigh
 >>> @patch('example.the_module', constant='Foo')
 ... def test_foo(mock_the_module):
 ...     assert foo() == 'Foo'
@@ -83,6 +85,8 @@ def foo():
 测试：
 
 ```python
+>>> from mock import patch
+>>> from example import foo
 >>> @patch('example.TheClass', return_value='Foo')
 ... def test(mock_class):
 ...     assert foo() == 'Foo'
@@ -109,6 +113,8 @@ def foo():
 测试：
 
 ```python
+>>> from mock import MagicMock, patch
+>>> from example import foo
 >>> @patch('example.TheClass', return_value=MagicMock(method=MagicMock(return_value='Foo')))
 ... def test(mock_class):
 ...     assert foo() == 'Foo'
@@ -119,6 +125,8 @@ def foo():
 如果 `method` 的返回值比较复杂，这样写可读性更高：
 
 ```python
+>>> from mock import MagicMock, patch
+>>> from example import foo
 >>> @patch('example.TheClass')
 ... def test(mock_class):
 ...     method = MagicMock(return_value={'value': 'Foo'})
@@ -149,6 +157,7 @@ class TheClass(object):
 测试：
 
 ```python
+>>> from mock import patch
 >>> from example import TheClass
 >>> @patch.object(TheClass, 'bar', return_value='Foo')
 ... def test(mock_bar):
@@ -180,6 +189,8 @@ def bar():
 测试：
 
 ```python
+>>> from mock import MagicMock, patch
+>>> from example import foo, bar
 >>> @patch.dict('sys.modules', module=MagicMock(constant='Foo'))
 ... def test():
 ...     assert foo() == 'Foo'
