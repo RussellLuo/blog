@@ -15,14 +15,14 @@ title: epoll 与 CLOSE_WAIT 连接
 本周在公司专项排查一个问题，最终问题被解决了，自己也感觉收获颇丰，特此总结一下。
 
 
-##一、问题背景
+## 一、问题背景
 
 公司产品有一个数据导出功能，该功能一直以来饱受诟病，客户经常反馈说导出不了数据，于是就让客户支持人员帮忙手动导数据。客户体验差不说，客户支持人员也是苦不堪言。
 
 内部实现上，该数据导出功能是通过 [Celery][1] 异步任务的方式来处理的。如果是因为导出数据量太大，导致任务超时被中途停掉，倒还可以理解。但大部分情况是，即使是很少量的数据，也无法导出。
 
 
-##二、排查分析
+## 二、排查分析
 
 ### 1. 查看 Celery 错误日志
 
@@ -94,7 +94,7 @@ OperationalError: (pymysql.err.OperationalError) (2006, "MySQL server has gone a
 
 按照 [celery:issue#1845][4] 中给出的思路，进行一一排查：
 
-####1）strace 跟踪 celery-download 进程
+#### 1）strace 跟踪 celery-download 进程
 
 ```bash
 $ strace -p 28912
@@ -121,7 +121,7 @@ $ lsof -d 30|grep 28912
 
 很明显地，"xx-celery-app0:3759->ip-10-10-10-10.xx:6379" 是一个指向 Redis 的 socket 连接，而且这个连接处于 CLOSE_WAIT 状态！正是这个 CLOSE_WAIT 状态的 Redis 连接，导致 epoll_wait 总是会立即返回，从而让 celery-download 进程陷入了不断调用 epoll_wait 的死循环中！！
 
-####2）分析 CLOSE_WAIT 连接
+#### 2）分析 CLOSE_WAIT 连接
 
 那么上述 Redis 连接为什么会处于 CLOSE_WAIT 状态呢？
 
@@ -143,7 +143,7 @@ timeout 0
 1. 为什么 Redis 连接超过了 1200 秒，client 端还不主动关闭，非要等到 server 端关闭呢？
 2. 为什么 server 端关闭后，client 端不正确响应呢？
 
-####3）redis-py 的连接池机制
+#### 3）redis-py 的连接池机制
 
 考虑到使用的 Redis 客户端库是 [redis-py][8] ，参考文档发现 redis-py 内部使用了 [连接池机制][9]，因此：一个连接用完后，不会被立即关闭，而会被释放到连接池中，等待下次取用。
 
@@ -183,7 +183,7 @@ class StrictRedis(object):
 遗憾地是，目前为止，这个问题还没能得到解答。（因为 Celery 的并发使用了 [gevent][11]，所以怀疑过是 `gevent 的魔幻 patch` 跟 `redis-py 的处理机制` 产生了化学反应，然而这种猜测很难得到验证。）
 
 
-##三、总结
+## 三、总结
 
 前面长篇大论地说了很多，关于这个问题，总结起来其实只有三点：
 
@@ -200,7 +200,7 @@ celery-download 在运行过程中，产生了处于 CLOSE_WAIT 状态的连接�
 celery 3.1.24 + gevent 1.2a1 + redis-py 2.10.5 的组合，会出现这种问题：redis-py 的连接池机制无法复用某些连接，进而导致这些连接处于失控状态。
 
 
-##四、问题复现
+## 四、问题复现
 
 对于上述 `epoll 与 CLOSE_WAIT 连接` 的问题，用这个 [简化示例][12] 可以完美复现。
 
