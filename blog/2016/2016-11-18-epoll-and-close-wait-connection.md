@@ -88,9 +88,11 @@ OperationalError: (pymysql.err.OperationalError) (2006, "MySQL server has gone a
 
 惊讶地同时，似乎也能解释得通了：这么高的 CPU 占用率，一定是哪里出现了死循环，导致整个 celery-download 进程几乎瘫痪，进而无法正常工作。
 
-但是为何会出现这种情况，对此我毫无头绪。请教 Google 大神后，意外地搜到了这个 [celery:issue#1845][4]。仔细看完以后，简直可以用 “醍醐灌顶” 来形容。
+除此以外，经过一些尝试和观察，还注意到一个现象：如果重启 celery-download，CPU 占用率会瞬间降下来，并且维持一段时间的正常值，然后过一会儿 CPU 占用率又会飙到很高。这也解释了在上一步 `加日志作性能分析` 的时候，为什么没有发现问题了：刚刚重启后的一段时间内，一切都是正常的。
 
-### 4. 顺藤摸瓜
+但是为何会出现上述这些现象，对此我毫无头绪。请教 Google 大神后，意外地搜到了这个 [celery:issue#1845][4]。仔细看完以后，简直可以用 “醍醐灌顶” 来形容。
+
+### 4. 顺藤摸瓜找元凶
 
 按照 [celery:issue#1845][4] 中给出的思路，进行一一排查：
 
@@ -120,6 +122,8 @@ $ lsof -d 30|grep 28912
 ```
 
 很明显地，"xx-celery-app0:3759->ip-10-10-10-10.xx:6379" 是一个指向 Redis 的 socket 连接，而且这个连接处于 CLOSE_WAIT 状态！正是这个 CLOSE_WAIT 状态的 Redis 连接，导致 epoll_wait 总是会立即返回，从而让 celery-download 进程陷入了不断调用 epoll_wait 的死循环中！！
+
+而对于 “celery-download 重启后，CPU 占用率会恢复正常” 的现象，可以这样解释：因为进程结束时，会关闭它用到的所有文件描述符（包括 CLOSE_WAIT 连接）；而对于新启动的进程，运行一段时间后，才会莫名其妙地产生 CLOSE_WAIT 连接 :-(
 
 #### 2）分析 CLOSE_WAIT 连接
 
@@ -183,13 +187,13 @@ class StrictRedis(object):
 遗憾地是，目前为止，这个问题还没能得到解答。（因为 Celery 的并发使用了 [gevent][11]，所以怀疑过是 `gevent 魔幻的 patch 处理` 跟 `redis-py 的连接池机制` 产生了化学反应，然而这种猜测暂时无法得到验证。）
 
 
-## 三、总结
+## 三、归纳总结
 
 前面长篇大论地说了很多，关于这个问题，总结起来其实只有三点：
 
 ### 1. 根本原因
 
-celery-download 在运行过程中，产生了处于 CLOSE_WAIT 状态的连接，这种连接会让系统调用 epoll_wait 立即返回，从而让进程陷入不断调用 epoll_wait 的死循环中，进而导致该进程无法正常工作。
+celery-download 进程，运行一段时间后，产生了处于 CLOSE_WAIT 状态的连接，这种连接会让系统调用 epoll_wait 立即返回，从而让进程陷入不断调用 epoll_wait 的死循环中，进而导致该进程无法正常工作。
 
 ### 2. 解决办法
 
@@ -200,33 +204,11 @@ celery-download 在运行过程中，产生了处于 CLOSE_WAIT 状态的连接�
 celery 3.1.24 + gevent 1.2a1 + redis-py 2.10.5 的组合，会出现这种问题：redis-py 的连接池机制无法复用某些连接，进而导致这些连接处于失控状态。
 
 
-## 四、问题复现
+## 四、一些技巧
+
+### 1. 问题复现
 
 对于上述 `epoll 与 CLOSE_WAIT 连接` 的问题，用这个 [简化示例][12] 可以完美复现。
-
-client 端的代码如下：
-
-```python
-# client.py
-
-import select
-import socket
-
-HOST = '127.0.0.1'
-PORT = 9999
-
-def main():
-    s = socket.socket()
-    s.connect((HOST, PORT))
-    epoll = select.epoll()
-    epoll.register(s, select.POLLIN)
-    while True:
-        epoll.poll()
-        data = s.recv(256)
-
-if __name__ == '__main__':
-    exit(main())
-```
 
 server 端的代码如下：
 
@@ -257,6 +239,30 @@ if __name__ == '__main__':
     server.serve_forever()
 ```
 
+client 端的代码如下：
+
+```python
+# client.py
+
+import select
+import socket
+
+HOST = '127.0.0.1'
+PORT = 9999
+
+def main():
+    s = socket.socket()
+    s.connect((HOST, PORT))
+    epoll = select.epoll()
+    epoll.register(s, select.POLLIN)
+    while True:
+        epoll.poll()
+        data = s.recv(256)
+
+if __name__ == '__main__':
+    exit(main())
+```
+
 复现步骤提示：
 
 1. 启动 server 端（python server.py）
@@ -264,6 +270,16 @@ if __name__ == '__main__':
 3. 观察 client 端进程的 CPU 占用率（top）
 4. 跟踪 client 端进程的执行情况（strace）
 5. 观察 client 端进程的 CLOSE_WAIT 连接（lsof）
+
+### 2. 关闭 CLOSE_WAIT 连接
+
+我们知道，重启进程可以去掉 CLOSE_WAIT 连接。但是重启进程毕竟动作太大，有没有办法在进程运行的同时，去掉该进程中产生的 CLOSE_WAIT 连接呢？
+
+答案是肯定的，借助 gdb 就可以做到。继续上面的例子，假设进程号为 28912、CLOSE_WAIT 连接的 fd 为 30，可以使用以下命令：
+
+```bash
+$ gdb -p 28912 -ex 'p close(30)' -ex 'set confirm off' -ex 'quit'
+```
 
 
 [1]: https://github.com/celery/celery
