@@ -198,3 +198,53 @@ def bar():
 ...
 >>> test()
 ```
+
+
+## Mock 具有特殊属性的对象
+
+通常在 Mock 一个简单对象的时候，我们会使用 `类 Mock`（或者它的 `子类 MagicMock`）。但是 `类 Mock` 本身带有一些 [可选参数][1]，如果待 Mock 对象恰好具有一个属性，该属性与某个可选参数同名，我们在此定义这样的属性为 `特殊属性`。
+
+具有上述 `特殊属性` 的对象，无法通过 `类 Mock` 直接创建出来。例如：
+
+```python
+>>> from mock import Mock
+>>> m = Mock(name='foo', value='bar')
+>>> m.name
+<Mock name='foo.name' id='4554622624'>
+>>> m.value
+'bar'
+```
+
+可以看出，name 符合上述对 `特殊属性` 的定义，创建对象 m 时：
+
+1. name 并没有被当做 m 的属性，因此 m.name 的值并不是预期的 foo
+2. value 被当做了 m 的属性，因此 m.value 的值是预期的 bar
+
+想要 name 被当做 m 的属性，有两种方式：
+
+1. 直接赋值覆盖
+
+    ```python
+    >>> from mock import Mock
+    >>> m = Mock(value='bar')
+    >>> m.name = 'foo'
+    >>> m.name
+    'foo'
+    >>> m.value
+    'bar'
+    ```
+
+2. 借助 [configure_mock 方法][2]（个人更倾向于这种方式）
+
+    ```python
+    >>> m = Mock()
+    >>> m.configure_mock(name='foo', value='bar')
+    >>> m.name
+    'foo'
+    >>> m.value
+    'bar'
+    ```
+
+
+[1]: https://docs.python.org/3/library/unittest.mock.html#unittest.mock.Mock
+[2]: https://docs.python.org/3/library/unittest.mock.html#unittest.mock.Mock.configure_mock
