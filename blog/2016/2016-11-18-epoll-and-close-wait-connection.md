@@ -275,7 +275,7 @@ if __name__ == '__main__':
 
 我们知道，重启进程可以去掉 CLOSE_WAIT 连接。但是重启进程毕竟动作太大，有没有办法在进程运行的同时，去掉该进程中产生的 CLOSE_WAIT 连接呢？
 
-答案是肯定的，借助 gdb 就可以做到。继续上面的例子，假设进程号为 28912、CLOSE_WAIT 连接的 fd 为 30，可以使用以下命令：
+答案是肯定的，[借助 gdb 就可以做到][13]。继续上面的例子，假设进程号为 28912、CLOSE_WAIT 连接的 fd 为 30，可以使用以下命令：
 
 ```bash
 $ gdb -p 28912 -ex 'p close(30)' -ex 'set confirm off' -ex 'quit'
@@ -294,3 +294,4 @@ $ gdb -p 28912 -ex 'p close(30)' -ex 'set confirm off' -ex 'quit'
 [10]: https://github.com/andymccurdy/redis-py/issues/306
 [11]: https://github.com/gevent/gevent
 [12]: https://github.com/bpowers/epoll-close-wait-example
+[13]: http://stackoverflow.com/questions/323146/how-to-close-a-file-descriptor-from-another-process-in-unix-systems/323180#323180
