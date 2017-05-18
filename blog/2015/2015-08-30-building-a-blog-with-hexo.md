@@ -238,6 +238,18 @@ theme: next
     duoshuo_shortname: russellluo
     ```
 
+> **更新于 2017 年 5 月 18 日**
+> 多说在 2017 年 3 月 21 日宣布：[将于 2017 年 6 月 1 日正式关停服务][7]。Disqus 会被墙，畅言要备案，最后发现了 [网易云跟帖][8]。
+>
+> 切换到网易云跟帖的步骤：
+> 1. 注册网易云跟帖的账号
+> 2. 按提示填写相关信息（特别注意 “站点网址” 需要跟博客网址相同，比如 `http://russellluo.com`）
+> 3. 升级到最新版本的 NexT
+> 4. 编辑 `站点配置文件`，注释掉 `duoshuo_shortname`
+> 5. 编辑 `主题配置文件`，[设置 gentie_productKey][9]
+>
+> 更多详情，可以参考 [这篇博客][10]。
+
 
 ## 四、正式部署
 
@@ -342,6 +354,10 @@ That's all! 如果你在我的博客上看到了这篇文章，说明我已经�
 [4]: https://github.com/RussellLuo/blog
 [5]: http://duoshuo.com
 [6]: https://github.com/iissnan/hexo-theme-next
-[7]: http://supervisord.readthedocs.org
-[8]: https://www.godaddy.com
-[9]: https://www.dnspod.cn
+[7]: http://dev.duoshuo.com/threads/58d1169ae293b89a20c57241
+[8]: https://gentie.163.com
+[9]: http://theme-next.iissnan.com/third-party-services.html#yungentie
+[10]: http://www.jianshu.com/p/3d0cb3becc6d
+[11]: http://supervisord.readthedocs.org
+[12]: https://www.godaddy.com
+[13]: https://www.dnspod.cn
