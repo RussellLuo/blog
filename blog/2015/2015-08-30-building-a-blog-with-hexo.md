@@ -251,6 +251,25 @@ theme: next
 > 更多详情，可以参考 [这篇博客][10]。
 
 
+> **更新于 2017 年 9 月 26 日**
+> 继多说关闭之后，网易云跟帖在 2017 年 8 月 1 日也停止了服务:( 不打算折腾了，直接切换到 Disqus（墙内用户需要自备梯子）。
+>
+> 切换到 Disqus 的步骤：
+> 1. 注册 [Disqus](https://disqus.com/) 的账号并登录
+> 2. 依次点击 “GET STARTED”、“I want to install Disqus on my site”
+> 3. 按提示填写站点信息（注意 “Website Name” 的内容就是 shortname，稍后会用到，比如 `russellluo`）
+> 4. 按提示 “1. Select Plan”（没钱就选择 Basic）、“2. Install Disqus”（NexT 主题的可以忽略）、“3. Configure Disqus”（填写 “Website URL” 后，点击 “Complete Setup” 即可）
+> 5. 编辑 `主题配置文件`，启用 Disqus：
+>
+>     ```
+      disqus:
+        enable: true
+        shortname: russellluo
+        count: true
+      ```
+> 更多详情，可以参考 [这篇博客](http://www.cylong.com/blog/2017/03/26/hexo-next-disqus/)。
+
+
 ## 四、正式部署
 
 ### 1. 使用 Supervisor 管理 Hexo 服务
