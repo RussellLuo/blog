@@ -87,11 +87,9 @@ def main():
     pool = r.connection_pool
     epoll = select.epoll()
 
-    conns = (pool.get_connection(''), pool.get_connection(''))
-    for conn in conns:
+    for conn in (pool.get_connection(''), pool.get_connection('')):
         conn.connect() 
         epoll.register(conn._sock, select.POLLIN)
-    for conn in conns:
         pool.release(conn)
 
     command_args = ('SET', 'foo', 'bar')
