@@ -140,7 +140,7 @@ timeout 0
 
 当然这里的 `timeout 0` 是官方的参考值，"ip-10-10-10-10.xx" 对应的 Redis 实例（注意：与 [celery:issue#1845][4] 中描述的情况不同，这个 Redis 实例不是用作 Celery 的 broker 或 result backend，而是用作普通的缓存），实际的 timeout 配置为 1200（秒）。
 
-于是，我们可以大胆猜测：fd 为 30 的那个 Redis 连接，因为空闲时间超过了 1200 秒，进而被 Redis 的 server 端主动关闭了（发送 FIN 报文），但是因为 client 端没有正确响应（回复 ACK 报文），导致该连接一直处于 CLOSE_WAIT 状态。
+于是，我们可以大胆猜测：fd 为 30 的那个 Redis 连接，因为空闲时间超过了 1200 秒，进而被 Redis 的 server 端主动关闭了（发送 FIN 报文），但是因为 client 端没有正确关闭（即被动关闭的一方，也许响应了 ACK 报文，但是没有发送 FIN 报文），导致该连接一直处于 CLOSE_WAIT 状态。
 
 到这里，尚存两点疑惑：
 
