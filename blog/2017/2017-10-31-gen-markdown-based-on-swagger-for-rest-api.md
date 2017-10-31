@@ -15,7 +15,7 @@ title: 基于 Swagger 描述语言为 REST API 生成 Markdown 文档
 
 [Swagger][1] 是一个简单但功能强大的 API 表达工具。它具有地球上最大的 API 工具生态系统。数以千计的开发人员，使用几乎所有的现代编程语言，都在支持和使用 Swagger。使用 Swagger 生成 API，我们可以得到交互式文档，自动生成代码的 SDK 以及 API 的发现特性等（参考 [使用Swagger生成RESTful API文档][2]）。
 
-Swagger 的功能很丰富，这里我只关心一点：如何基于简单的 Swagger 描述语言，为 REST API 生成易读的 Markdown 离线文档。
+Swagger 的功能很丰富，但在这里我们只关心一点：如何基于简单的 Swagger 描述语言，为 REST API 生成易读的 Markdown 离线文档。
 
 
 ## 一、基于 Swagger Spec 编写 API 描述文档
@@ -76,7 +76,7 @@ Swagger 的功能很丰富，这里我只关心一点：如何基于简单的 Sw
 
 ## 二、安装转换工具 Swagger2Markup
 
-[Swagger2Markup][6] 是一个 Java 编写的工具，用于将 Swagger 文档转换为 AsciiDoc 或者 Markdown 文档。简直就是为这里的需求量身定做的 :-)
+[Swagger2Markup][6] 是一个 Java 编写的工具，用于将 Swagger 文档转换为 AsciiDoc 或者 Markdown 文档。简直就是为我们这里的需求量身定做的 :-)
 
 安装 Swagger2Markup 的步骤如下：
 
@@ -129,8 +129,6 @@ Swagger 的功能很丰富，这里我只关心一点：如何基于简单的 Sw
 
 3. 查看生成结果
 
-    ```
-    ```
     ```
     # Swagger Petstore
    
@@ -213,9 +211,9 @@ Swagger 的功能很丰富，这里我只关心一点：如何基于简单的 Sw
 
 ## 四、CLI as a service
 
-如果团队内部人员都会用到这个工具，但是又不想在每个人电脑上都安装 Java 和 Swagger2Markup，这时可以 **将命令行工具提供为一个服务**。
+如果团队内部人员都会用到这个工具，但是又不想在每个人的电脑上都安装 Java 和 Swagger2Markup，这时可以基于命令行工具 Swagger2Markup 提供一个 “文档转换服务”。
 
-作为示例，以下是使用 Python 语言并且借助 [RESTArt][11] 库实现的一个 “命令行服务”：
+作为示例，以下是使用 Python 语言并且借助 [RESTArt][11] 库实现的一个 “文档转换服务”：
 
 ```python
 # swagger2markdown.py
@@ -280,14 +278,14 @@ class SwaggerMarkdownDocs(Resource):
         return content, status.HTTP_201_CREATED
 ```
 
-启动 “命令行服务”：
+启动 “文档转换服务”：
 
 ```bash
 $ restart swagger2markdown:api
  * Running on http://127.0.0.1:5000/ (Press CTRL+C to quit)
 ```
 
-消费服务生成 Markdown 文档：
+使用 “文档转换服务” 生成 Markdown 文档：
 
 ```bash
 $ curl -H 'Content-Type: text/plain' -XPOST http://localhost:5000/swagger_markdown_docs --data-binary @/path/to/petstore-minimal.yaml > /tmp/petstore-minimal.md
@@ -303,5 +301,5 @@ $ curl -H 'Content-Type: text/plain' -XPOST http://localhost:5000/swagger_markdo
 [7]: https://www.digitalocean.com/community/tutorials/how-to-install-java-on-ubuntu-with-apt-get
 [8]: http://www.cnblogs.com/a2211009/p/4265225.html
 [9]: http://swagger2markup.github.io/swagger2markup/1.3.1/#_command_line_interface
-[10]: https://akamai.bintray.com/c2/c2fa21c68c672c00b3c7a1d21cbc084bf784b4c461fde31302831ee26df946de?__gda__=exp=1509433974~hmac=1471360e3fffcd1ae6e93356d8cf2ea994475a3b5031f591ab7a07db31a8c1a5&response-content-disposition=attachment%3Bfilename%3D%22swagger2markup-cli-1.3.1.jar%22&response-content-type=application%2Fjava-archive&requestInfo=U2FsdGVkX19dOVfS0H7rxgssjOf69CmTMyWC4XQNzgelJUWZ7gg84ybqJLEMqse6_hBnMJz3iDL3Od1Wr8NnVQAenCskSfy-ORcZPghpvEvrJR8DtJytqDSOmlGWP5Fspk1pxnLv3fJh1egmuSUYlolhibfhf-KgUcmuB377jMfjEUYu1tZM1nfibBJRcK6L&response-X-Checksum-Sha1=c39a243c4128b918e719dcd98fba42d4b321ba89&response-X-Checksum-Sha2=c2fa21c68c672c00b3c7a1d21cbc084bf784b4c461fde31302831ee26df946de&response-X-Checksum-Sha256=c2fa21c68c672c00b3c7a1d21cbc084bf784b4c461fde31302831ee26df946de 
+[10]: https://jcenter.bintray.com/io/github/swagger2markup/swagger2markup-cli/1.3.1/
 [11]: https://restart.readthedocs.io/en/latest/
