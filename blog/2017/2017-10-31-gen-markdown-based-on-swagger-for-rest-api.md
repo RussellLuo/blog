@@ -24,7 +24,7 @@ Swagger 的功能很丰富，这里我只关心一点：如何基于简单的 Sw
 
 这里我们以 [petstore-minimal.yaml][5] 为例：
 
-```yml
+```yaml
 ---
   swagger: "2.0"
   info: 
@@ -106,7 +106,7 @@ Swagger 的功能很丰富，这里我只关心一点：如何基于简单的 Sw
 
 ### 2. 下载 Swagger2Markup 的命令行工具
 
-    参考 [Command Line Interface][9]，下载最新的 jar 包（当前为 [swagger2markup-cli-1.3.1.jar][10]）即可。
+参考 [Command Line Interface][9]，下载最新的 jar 包（当前为 [swagger2markup-cli-1.3.1.jar][10]）即可。
 
 
 ## 三、使用 Swagger2Markup 将 Swagger 转换为 Markdown
@@ -127,6 +127,89 @@ Swagger 的功能很丰富，这里我只关心一点：如何基于简单的 Sw
     $ java -jar swagger2markup-cli-1.3.1.jar convert -i /path/to/petstore-minimal.yaml -f /tmp/petstore-minimal -c /path/to/config.properties
     ```
 
+3. 查看生成结果
+
+    ```
+    ```
+    ```
+    # Swagger Petstore
+   
+   
+    <a name="overview"></a>
+    ## Overview
+    A sample API that uses a petstore as an example to demonstrate features in the swagger-2.0 specification
+
+
+    ### Version information
+    *Version* : 1.0.0
+
+
+    ### Contact information
+    *Contact* : Swagger API Team
+
+
+    ### License information
+    *License* : MIT
+    *Terms of service* : http://swagger.io/terms/
+
+
+    ### URI scheme
+    *Host* : petstore.swagger.io
+    *BasePath* : /api
+    *Schemes* : HTTP
+
+
+    ### Consumes
+
+    * `application/json`
+
+
+    ### Produces
+   
+    * `application/json`
+   
+   
+   
+   
+    <a name="paths"></a>
+    ## Paths
+   
+    <a name="pets-get"></a>
+    ### GET /pets
+
+    #### Description
+    Returns all pets from the system that the user has access to
+
+
+    #### Responses
+
+    |HTTP Code|Description|Schema|
+    |---|---|---|
+    |**200**|A list of pets.|< [Pet](#pet) > array|
+
+
+    #### Produces
+
+    * `application/json`
+
+
+
+
+    <a name="definitions"></a>
+    ## Definitions
+
+    <a name="pet"></a>
+    ### Pet
+
+    |Name|Schema|
+    |---|---|
+    |**id**  <br>*required*|integer (int64)|
+    |**name**  <br>*required*|string|
+    |**tag**  <br>*optional*|string|
+
+
+    ```
+
 
 ## 四、CLI as a service
 
@@ -137,8 +220,8 @@ Swagger 的功能很丰富，这里我只关心一点：如何基于简单的 Sw
 ```python
 # swagger2markdown.py
 
-import tempfile
 import os
+import tempfile
 
 from restart import status
 from restart.api import RESTArt
