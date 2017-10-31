@@ -235,7 +235,7 @@ class SwaggerParser(Parser):
     content_type = 'text/plain'
 
     def parse(self, stream, content_type, content_length, context=None):
-        return stream.read()
+        return stream.read().decode('utf-8')
 
 
 class MarkdownRenderer(Renderer):
@@ -244,7 +244,7 @@ class MarkdownRenderer(Renderer):
     format_suffix = 'md'
 
     def render(self, data, context=None):
-        return data
+        return data.encode('utf-8')
 
 
 @api.register
@@ -258,7 +258,7 @@ class SwaggerMarkdownDocs(Resource):
     def create(self, request):
         with tempfile.NamedTemporaryFile(suffix='.yml', delete=False) as yml:
             yml_filename = yml.name
-            yml.write(request.data)
+            yml.write(request.data.encode('utf-8'))
 
         with tempfile.NamedTemporaryFile(suffix='.md', delete=False) as md:
             md_filename = md.name
@@ -270,7 +270,7 @@ class SwaggerMarkdownDocs(Resource):
         ))
 
         with open(md_filename) as md:
-            content = md.read()
+            content = md.read().decode('utf-8')
 
         os.unlink(yml_filename)
         os.unlink(md_filename)
