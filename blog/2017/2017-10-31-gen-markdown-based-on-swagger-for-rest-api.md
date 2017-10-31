@@ -113,100 +113,100 @@ Swagger 的功能很丰富，但在这里我们只关心一点：如何基于简
 
 参考 [Command Line Interface][9] 中的步骤：
 
-1. 创建一个 `config.properties` 配置文件
+### 1. 创建一个 `config.properties` 配置文件
 
-    设置 markupLanguage 为 MARKDOWN
+设置 markupLanguage 为 MARKDOWN
 
-    ```
-    swagger2markup.markupLanguage=MARKDOWN
-    ```
+```
+swagger2markup.markupLanguage=MARKDOWN
+```
 
-2. 将 Swagger 转换为 Markdown
+### 2. 将 Swagger 转换为 Markdown
 
-    ```bash
-    $ java -jar swagger2markup-cli-1.3.1.jar convert -i /path/to/petstore-minimal.yaml -f /tmp/petstore-minimal -c /path/to/config.properties
-    ```
+```bash
+$ java -jar swagger2markup-cli-1.3.1.jar convert -i /path/to/petstore-minimal.yaml -f /tmp/petstore-minimal -c /path/to/config.properties
+```
 
-3. 查看生成结果
+### 3. 查看生成的文档
 
-    ```
-    # Swagger Petstore
-   
-   
-    <a name="overview"></a>
-    ## Overview
-    A sample API that uses a petstore as an example to demonstrate features in the swagger-2.0 specification
+```
+# Swagger Petstore
 
 
-    ### Version information
-    *Version* : 1.0.0
+<a name="overview"></a>
+## Overview
+A sample API that uses a petstore as an example to demonstrate features in the swagger-2.0 specification
 
 
-    ### Contact information
-    *Contact* : Swagger API Team
+### Version information
+*Version* : 1.0.0
 
 
-    ### License information
-    *License* : MIT
-    *Terms of service* : http://swagger.io/terms/
+### Contact information
+*Contact* : Swagger API Team
 
 
-    ### URI scheme
-    *Host* : petstore.swagger.io
-    *BasePath* : /api
-    *Schemes* : HTTP
+### License information
+*License* : MIT
+*Terms of service* : http://swagger.io/terms/
 
 
-    ### Consumes
-
-    * `application/json`
-
-
-    ### Produces
-   
-    * `application/json`
-   
-   
-   
-   
-    <a name="paths"></a>
-    ## Paths
-   
-    <a name="pets-get"></a>
-    ### GET /pets
-
-    #### Description
-    Returns all pets from the system that the user has access to
+### URI scheme
+*Host* : petstore.swagger.io
+*BasePath* : /api
+*Schemes* : HTTP
 
 
-    #### Responses
+### Consumes
 
-    |HTTP Code|Description|Schema|
-    |---|---|---|
-    |**200**|A list of pets.|< [Pet](#pet) > array|
+* `application/json`
 
 
-    #### Produces
+### Produces
 
-    * `application/json`
+* `application/json`
 
 
 
 
-    <a name="definitions"></a>
-    ## Definitions
+<a name="paths"></a>
+## Paths
 
-    <a name="pet"></a>
-    ### Pet
+<a name="pets-get"></a>
+### GET /pets
 
-    |Name|Schema|
-    |---|---|
-    |**id**  <br>*required*|integer (int64)|
-    |**name**  <br>*required*|string|
-    |**tag**  <br>*optional*|string|
+#### Description
+Returns all pets from the system that the user has access to
 
 
-    ```
+#### Responses
+
+|HTTP Code|Description|Schema|
+|---|---|---|
+|**200**|A list of pets.|< [Pet](#pet) > array|
+
+
+#### Produces
+
+* `application/json`
+
+
+
+
+<a name="definitions"></a>
+## Definitions
+
+<a name="pet"></a>
+### Pet
+
+|Name|Schema|
+|---|---|
+|**id**  <br>*required*|integer (int64)|
+|**name**  <br>*required*|string|
+|**tag**  <br>*optional*|string|
+
+
+```
 
 
 ## 四、CLI as a service
