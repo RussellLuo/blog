@@ -86,7 +86,7 @@ OK
 
 ### 1. slave 初次连接 master
 
-上述过程中，在 slave 上执行 SLAVEOF 命令以后，可以看到 slave 的日志如下：
+上述过程中，在 slave 上执行 [SLAVEOF][2] 命令以后，可以看到 slave 的日志如下：
 
 ```bash
 31667:S 03 Jul 21:32:17.809 * Before turning into a slave, using my master parameters to synthesize a cached master: I may be able to synchronize with the new master with just a partial transfer.
@@ -121,12 +121,12 @@ OK
 1. slave 主动连接 master。
 2. 连接成功后，slave 会向 master 发起 partial resynchronization 的请求。
 3. master 收到请求后，判断 replication ID 不匹配，拒绝执行 partial resynchronization，转而通知 slave 执行 full resync。
-4. 随后 master 开始执行 BGSAVE 命令，将当前 DB 数据保存到 disk 磁盘，最后向 slave 发送 DB 数据。
+4. 随后 master 开始执行 [BGSAVE][3] 命令，将当前 DB 数据保存到 disk 磁盘，最后向 slave 发送 DB 数据。
 5. slave 从 master 接收到 DB 数据后，将其加载到内存，同时删除旧数据。
 
 ### 2. slave 断开后重连 master
 
-**思考**：如何在同一台机器上，模拟 master 和 slave 的网络断开与恢复？
+**思考**：在同一台机器上，如何模拟 master 和 slave 的网络断开与恢复？
 
 master 日志：
 
@@ -159,7 +159,7 @@ slave 日志：
 4. 这一次，master 接受了该 partial resynchronization 请求，然后将 backlog 中由 (offset, size) 标记的数据流发送给 slave。
 5. slave 从 master 接收到数据流后，更新自己内存中的数据。
 
-**实验**：[redis.conf][3] 中有两个参数 `repl-timeout`（默认值为 60 秒） 和 `repl-backlog-ttl`（默认值为 3600 秒），尝试都设置为 10 秒，然后断开网络一直等到 25 秒后再恢复，再观察 master 和 slave 的日志会有什么不同？
+**实验**：[redis.conf][4] 中有两个参数 `repl-timeout`（默认值为 60 秒）和 `repl-backlog-ttl`（默认值为 3600 秒），尝试都设置为 10 秒，然后断开网络一直等到 25 秒后再恢复，再观察 master 和 slave 的日志会有什么不同？
 
 ### 3. master 与 slave 连接正常，写 master
 
@@ -253,9 +253,9 @@ PING
 
 #### SYNC 与 PSYNC
 
-旧版本 Redis 中，「重同步」通过 [SYNC][4] 命令来实现。从 2.8 版本开始，Redis 改用 PSYNC 命令来代替 [SYNC][4] 命令。
+旧版本 Redis 中，「重同步」通过 [SYNC][5] 命令来实现。从 2.8 版本开始，Redis 改用 PSYNC 命令来代替 [SYNC][5] 命令。
 
-[SYNC][4] 命令和 PSYNC 命令的区别：
+[SYNC][5] 命令和 PSYNC 命令的区别：
 
 | 命令 | 初次复制 | 断线后复制 | 
 | --- | --- | --- |
@@ -268,15 +268,15 @@ PING
 
 说明：
 
-1. slave 通过 [SYNC][4] 或 PSYNC 命令，向 master 发起同步请求。
+1. slave 通过 [SYNC][5] 或 PSYNC 命令，向 master 发起同步请求。
 2. master 返回 FULLRESYNC 告知 slave 将执行「完整重同步」，先决条件为：
-    - 请求命令是「完整重同步」[SYNC][4]。
+    - 请求命令是「完整重同步」[SYNC][5]。
     - 请求命令是「完整重同步」`PSYNC ? -1`。
     - 请求命令是「部分重同步」`PSYNC <replication-id> <offset>`，但是 `<replication-id>` 不是 master 的 replication-id，或者 slave 给的 `<offset>` 不在 master 的「复制积压缓冲区」backlog 里面。
-3. master 执行 BGSAVE 命令，将当前数据库状态保存为 RDB 文件。
+3. master 执行 [BGSAVE][3] 命令，将当前数据库状态保存为 RDB 文件。
 4. 生成 RDB 文件完毕后，master 将该文件发送给 slave。
 5. slave 收到 RDB 文件后，将其加载至内存。
-6. master 将 backlog 中缓冲的命令发送给 slave（一开始在 BGSAVE 时记录了当时的 offset）。
+6. master 将 backlog 中缓冲的命令发送给 slave（一开始在 [BGSAVE][3] 时记录了当时的 offset）。
 7. slave 收到后，逐个执行这些命令。
 
 #### 部分重同步
@@ -288,23 +288,26 @@ PING
 1. slave 通过 `PSYNC <replication-id> <offset>` 命令，向 master 发起「部分重同步」请求。
 2. master 返回 CONTINUE 告知 slave 同意执行「部分重同步」，先决条件为：
     - `<replication-id>` 是 master 的 replication-id，并且 slave 给的 `<offset>` 在 master 的「复制积压缓冲区」backlog 里面
-3. master 将 backlog 中缓冲的命令发送给 slave（基于 slave 给的 offset）。
+3. master 将 backlog 中缓冲的命令发送给 slave（根据 slave 给的 offset）。
 4. slave 收到后，逐个执行这些命令。
 
 由上可以看出，「复制积压缓冲区」backlog 是「部分重同步」得以实现的关键所在。
 
 #### 复制积压缓冲区
 
-「复制积压缓冲区」是 master 维护的一个固定长度（fixed-sized）的先进先出（FIFO）的内存队列。对列大小由配置 `repl-backlog-size` 决定，默认为 1MB。
+「复制积压缓冲区」是 master 维护的一个固定长度（fixed-sized）的先进先出（FIFO）的内存队列。值得注意的是：
 
-master 会将最近接收到的写命令（按 Redis 协议的格式）保存到「复制积压缓冲区」，其中每个字节都会对应记录一个偏移量 offset。
+- 队列的大小由配置 `repl-backlog-size` 决定，默认为 1MB。当队列长度超过 `repl-backlog-size` 时，最先入队的元素会被弹出，用于腾出空间给新入队的元素。
+- 队列的生存时间由配置 `repl-backlog-ttl` 决定，默认为 3600 秒。如果 master 不再有与之相连接的 slave，并且该状态持续时间超过了 `repl-backlog-ttl`，master 就会释放该队列，等到有需要（下次又有 slave 连接进来）的时候再创建。
+
+master 会将最近接收到的写命令（按 [Redis 协议][6]的格式）保存到「复制积压缓冲区」，其中每个字节都会对应记录一个偏移量 offset。
 
 | . | . | . | . | . | . | . | . | . | . | . | . | . | . |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | 偏移量 | ... | 10087 | 10088 | 10089 | 10090 | 10091 | 10092 | 10093 | 10094 | 10095 | 10096 | 10097 | ... |
 | 字节值 | ... | '*' | 3 | '\r' | '\n' | '$' | 3 | '\r' | '\n' | 'S' | 'E' | 'T' | ... |
 
-与此同时，slave 会维护一个 offset 值，每次从 master 传播过来的命令，一旦成功执行就会更新 offset。尝试「部分重同步」的时候，slave 都会带上自己的 offset，master 再判断 offset 偏移量之后的数据是否存在于自己的「复制积压缓冲区」中，以此来决定执行「部分重同步」还是「完整重同步」。
+与此同时，slave 会维护一个 offset 值，每次从 master 传播过来的命令，一旦成功执行就会更新该 offset。尝试「部分重同步」的时候，slave 都会带上自己的 offset，master 再判断 offset 偏移量之后的数据是否存在于自己的「复制积压缓冲区」中，以此来决定执行「部分重同步」还是「完整重同步」。
 
 ### 2. 命令传播
 
@@ -318,11 +321,13 @@ master 会将最近接收到的写命令（按 Redis 协议的格式）保存到
 ## 五、参考资料
 
 - [Redis 官方文档 - Replication][1]
-- [Redis 设计与实现][5]
+- [Redis 设计与实现][7]
 
 
 [1]: https://redis.io/topics/replication
 [2]: https://redis.io/commands/slaveof
-[3]: https://raw.githubusercontent.com/antirez/redis/4.0/redis.conf
-[4]: https://redis.io/commands/sync
-[5]: https://book.douban.com/subject/25900156/
+[3]: https://redis.io/commands/bgsave
+[4]: https://raw.githubusercontent.com/antirez/redis/4.0/redis.conf
+[5]: https://redis.io/commands/sync
+[6]: https://redis.io/topics/protocol
+[7]: https://book.douban.com/subject/25900156/
