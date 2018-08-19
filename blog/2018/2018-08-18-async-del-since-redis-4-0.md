@@ -62,7 +62,7 @@ OK
 
 #### 创建两个大 hash
 
-准备一个 lua 脚本：
+准备一个 Lua 脚本：
 
 ```lua
 local bulk = 1000
@@ -86,7 +86,7 @@ end
 return "OK"
 ```
 
-将上述脚本保存为 `huge_hmset.lua`，然后创建两个大 hash，分别为 `hash1` 和 `hash2`，它们各自拥有 100 万个 field：
+将上述脚本保存为 `huge_hmset.lua`，然后借助该脚本创建两个大 hash（参考 [how to load lua script from file for redis][16]），分别为 `hash1` 和 `hash2`，它们各自拥有 100 万个 field：
 
 ```bash
 $ redis-cli --eval huge_hmset.lua hash1 , 1000000
@@ -95,10 +95,10 @@ $ redis-cli --eval huge_hmset.lua hash2 , 1000000
 "OK"
 ```
 
-上述操作会在 Slow log 中产生大量 [HMSET][16] 命令，这里先清除掉：
+上述操作会在 Slow log 中产生大量 [HMSET][17] 命令，这里先清除掉：
 
 ```
-127.0.0.1:6379> slowlog reset
+127.0.0.1:6379> SLOWLOG RESET
 OK
 ```
 
@@ -147,9 +147,9 @@ OK
 值得注意的是：[UNLINK][9] 执行如此之快，并非使用了什么快速算法，而是因为它将真正的删除操作异步化了。
 
 
-## 四、更多资料
+## 四、相关阅读
 
-- [Never Stop Serving: Making Redis Concurrent With Modules][17]
+- [Never Stop Serving: Making Redis Concurrent With Modules][18]
 
 
 [1]: https://redis.io/topics/faq#redis-is-single-threaded-how-can-i-exploit-multiple-cpu--cores
@@ -167,5 +167,6 @@ OK
 [13]: https://github.com/antirez/redis/blob/c7613cf34ed8f49681607d247cdf12a7e80cec94/src/db.c#L261-L271
 [14]: https://github.com/antirez/redis/blob/b0392e75ec37ffae0cb2277723168d8179861bef/src/lazyfree.c#L54-L91
 [15]: https://redis.io/commands/slowlog
-[16]: https://redis.io/commands/hmset
-[17]: https://redislabs.com/blog/making-redis-concurrent-with-modules/
+[16]: https://groups.google.com/d/msg/redis-db/0UzLhSkAziQ/H-35GJfqtisJ
+[17]: https://redis.io/commands/hmset
+[18]: https://redislabs.com/blog/making-redis-concurrent-with-modules/
