@@ -43,17 +43,17 @@ if !t.Stop() {
 
 ### Timer.Reset
 
-按照 [Timer.Reset 文档][4] 的说法，每要正确地 Reset Timer，需要首先正确地 Stop Timer。因此 Reset 的问题跟 Stop 基本相同。
+按照 [Timer.Reset 文档][4] 的说法，要正确地 Reset Timer，首先需要正确地 Stop Timer。因此 Reset 的问题跟 Stop 基本相同。
 
 
-## 二、正确方式
+## 二、使用 Timer 的正确方式
 
 参考 Russ Cox 的回复（[这里][5] 和 [这里][6]），目前 Timer 唯一合理的使用方式是：
 
 - 程序始终在同一个 goroutine 中进行 Timer 的 Stop、Reset 和 receive/drain channel 操作
 - 程序需要维护一个状态变量，用于记录它是否已经从 channel 中接收过事件，进而作为 Stop 中 draining 操作的判断依据
 
-如果每次使用 Timer 都要按照上述方案来处理，无疑是一件很费神的事。为此，我专门写了一个 Go 库 [goodtimer][7] 来解决标准 Timer 的问题。懒是一种美德 :-)
+如果每次使用 Timer 都要按照上述方式来处理，无疑是一件很费神的事。为此，我专门写了一个 Go 库 [goodtimer][7] 来解决标准 Timer 的问题。懒是一种美德 :-)
 
 
 ## 三、相关阅读
