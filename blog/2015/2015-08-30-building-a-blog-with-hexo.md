@@ -274,7 +274,7 @@ theme: next
 
 ### 1. 使用 Supervisor 管理 Hexo 服务
 
-使用 `hexo server` 启动的 Hexo 服务是非 Daemon 模式的。为了便于管理，这里使用 [Supervisor][7]。
+使用 `hexo server` 启动的 Hexo 服务是非 Daemon 模式的。为了便于管理，这里使用 [Supervisor][11]。
 
 创建 Supervisor 配置文件：
 
@@ -345,7 +345,7 @@ $ nginx -s reload
 
 ## 五、购买域名
 
-让用户通过 `http://<VPS-IP>` 访问博客，显然是反 Web 的行为。作为一名专业的博主，我在 [GoDaddy][8] 购买了自己博客的域名。
+让用户通过 `http://<VPS-IP>` 访问博客，显然是反 Web 的行为。作为一名专业的博主，我在 [GoDaddy][12] 购买了自己博客的域名。
 
 启用了高大上的域名后，需要修改上述的 Nginx 配置，将 server_name 从 IP 改成域名：
 
@@ -362,7 +362,7 @@ server {
 
 ## 六、设置 DNS
 
-对外开放的最后一步，是设置 DNS，让域名 russellluo.com 真正解析到我的虚拟服务器 IP。我用 [DNSPod][9]，快速、免费、稳定！
+对外开放的最后一步，是设置 DNS，让域名 russellluo.com 真正解析到我的虚拟服务器 IP。我用 [DNSPod][13]，快速、免费、稳定！
 
 That's all! 如果你在我的博客上看到了这篇文章，说明我已经成功了。
 
