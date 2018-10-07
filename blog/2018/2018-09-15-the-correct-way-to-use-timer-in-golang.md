@@ -3,6 +3,7 @@ categories:
 
 tags:
 - Go
+- Timer
 
 title: 使用 Golang Timer 的正确方式
 ---

@@ -2,7 +2,8 @@ categories:
 - 技术
 
 tags:
-- Redis
+- Go
+- Timer
 
 title: 层级时间轮的 Golang 实现
 ---
