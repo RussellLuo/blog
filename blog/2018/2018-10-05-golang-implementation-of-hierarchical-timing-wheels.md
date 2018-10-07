@@ -7,9 +7,9 @@ tags:
 title: 层级时间轮的 Golang 实现
 ---
 
-## 一、要解决的问题
+## 一、引言
 
-最近在公司负责制定重构计划，需要将部分业务代码从 Python 迁移到 Golang。其中一些功能涉及到 Celery 延时任务，所以一直在思考 Golang 中处理延时任务的有效方案。
+最近在工作中负责制定重构计划，需要将部分业务代码从 Python 迁移到 Golang。其中一些功能涉及到 Celery 延时任务，所以一直在思考 Golang 中处理延时任务的有效方案。
 
 其实在软件系统中，“在一段时间后执行一个任务” 的需求比比皆是。比如：
 
@@ -88,16 +88,16 @@ Golang 内置的 [Timer][1] 是采用最小堆来实现的，创建和删除的�
 
 在具体实现层面（参考 [Kafka Timer 实现源码][7]），Kafka 的层级时间轮与上面描述的原理有一些细微差别。
 
-### 时间轮表示
+### 1. 时间轮表示
 
 ![kafka-implementation](https://raw.githubusercontent.com/RussellLuo/blog/master/blog/2018/files/2018-10-05-kafka-implementation_.png)
 
-如图所示，在时间轮的表示上面：
+如上图所示，在时间轮的表示上面：
 
 - 使用大小为 wheelSize 的数组来表示一层时间轮，其中每一格是一个 bucket，每个 bucket 的时间单位为 tick。
 - 这个时间轮数组并没有模拟循环列表的行为（如图左所示），而是模拟了哈希表的行为。具体而言（如图右所示），这个时间轮数组会随着 currentTime 的流逝而移动，也就是说 currentTime 永远是指向第一个 bucket 的，每个落到该时间轮的定时任务，都会根据哈希函数 (expiration/tick)%wheelSize 散列到对应的 bucket 中（参考 [源码][8]）。
 
-### 时钟驱动方式
+### 2. 时钟驱动方式
 
 常规的时间轮实现中，会在一个线程中每隔一个时间单位 tick 就醒来一次，并驱动时钟走向下一格，然后检查这一格中是否包含定时任务。如果时间单位 tick 很小（比如 Kafka 中 tick 为 1ms）并且（在最低层时间轮的）定时任务很少，那么这种驱动方式将会非常低效。
 
@@ -106,12 +106,12 @@ Kafka 的层级时间轮实现中，利用了 Java 内置的 [DelayQueue][9] 结
 
 ## 五、Golang 实现要点
 
-[timingwheel][5] 的 Golang 实现，基本上都是参考 Kafka 的层级时间轮来实现的。
+[timingwheel][5] 中的 Golang 实现，基本上都是参考 Kafka 的层级时间轮的原理来实现的。
 
 因为 Golang 中没有现成的 DelayQueue 结构，所以自己实现了一个 [DelayQueue][13]，其中：
 
 - PriorityQueue —— 从 [NSQ][14] 借用过来的 [优先级队列][15]（基于最小堆实现）。
-- DelayQueue —— Offer（添加 bucket）和 Poll（获取并删除 bucket）的运作方式，跟 Golang Timer 运行时中 [addtimerLocked][16] 和 [timerproc][17] 的运作方式如出一辙，因此参考了其中的实现（参考 [原理介绍][18]）。
+- DelayQueue —— Offer（添加 bucket）和 Poll（获取并删除 bucket）的运作方式，跟 Golang Timer 运行时中 [addtimerLocked][16] 和 [timerproc][17] 的运作方式如出一辙，因此参考了其中的实现方式（参考 [原理介绍][18]）。
 
 
 ## 六、相关阅读
