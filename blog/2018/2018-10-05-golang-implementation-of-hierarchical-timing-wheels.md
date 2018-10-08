@@ -87,7 +87,7 @@ Golang 内置的 [Timer][1] 是采用最小堆来实现的，创建和删除的�
 
 ## 四、Kafka 的变体实现
 
-在具体实现层面（参考 [Kafka Timer 实现源码][7]），Kafka 的层级时间轮与上面描述的原理有一些细微差别。
+在具体实现层面（参考 [Kafka Timer 实现源码][7]），Kafka 的层级时间轮与上面描述的原理有一些差别。
 
 ### 1. 时间轮表示
 
@@ -109,7 +109,7 @@ Kafka 的层级时间轮实现中，利用了 Java 内置的 [DelayQueue][9] 结
 如上图所示：
 
 1. 往层级时间轮中添加一个定时任务 task1 后，会将该任务所属的 bucket2 的到期时间设置为 task1 的到期时间 expiration（= 当前时间 currentTime + 定时任务到期间隔 duration），并将这个 bucket2 添加（Offer）到 DelayQueue 中。
-2. DelayQueue（内部有一个线程）会等待 “到期时间最早（earliest）的 bucket” 到期，图中等到的是排在队首的 bucket2，于是经由 poll 返回并删除这个 bucket2，然后再删除并执行 bucket2 中包含的 task1；随后，时间轮会将当前时间 currentTime 往前移动到 bucket2 的 expiration 所指向的时间（图中是 1ms 所在的位置）。
+2. DelayQueue（内部有一个线程）会等待 “到期时间最早（earliest）的 bucket” 到期，图中等到的是排在队首的 bucket2，于是经由 poll 返回并删除这个 bucket2；随后，时间轮会将当前时间 currentTime 往前移动到 bucket2 的 expiration 所指向的时间（图中是 1ms 所在的位置）；最后，bucket2 中包含的 task1 会被删除并执行。
 
 上述 Kafka 层级时间轮的驱动方式是非常高效的。虽然 DelayQueue 中 offer（添加）和 poll（获取并删除）操作的时间复杂度为 O(log n)，但是相比定时任务的个数而言，bucket 的个数其实是非常小的（也就是 O(log n) 中的 n 很小），因此性能也是没有问题的。
 
