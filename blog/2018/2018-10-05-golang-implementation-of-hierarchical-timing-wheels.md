@@ -143,7 +143,7 @@ Kafka 的层级时间轮实现中，利用了 Java 内置的 [DelayQueue][9] 结
 [10]: https://github.com/apache/kafka/blob/3cdc78e6bb1f83973a14ce1550fe3874f7348b05/core/src/main/scala/kafka/utils/timer/TimingWheel.scala#L140-L148
 [11]: https://github.com/apache/kafka/blob/3cdc78e6bb1f83973a14ce1550fe3874f7348b05/core/src/main/scala/kafka/utils/timer/Timer.scala#L110
 [12]: https://github.com/apache/kafka/blob/3cdc78e6bb1f83973a14ce1550fe3874f7348b05/core/src/main/scala/kafka/utils/timer/Timer.scala#L111
-[13]: https://github.com/RussellLuo/timingwheel/blob/master/delayqueue.go
+[13]: https://github.com/RussellLuo/timingwheel/tree/master/delayqueue
 [14]: https://nsq.io/
 [15]: https://github.com/nsqio/nsq/blob/master/internal/pqueue/pqueue.go
 [16]: https://github.com/golang/go/blob/release-branch.go1.7/src/runtime/time.go#L94
