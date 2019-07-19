@@ -88,18 +88,18 @@ Go 变量主要分为两种：
 
 ## 三、确定 Go 变量最终的分配位置
 
-至此，我们还剩下一个问题：对于一个 Go 局部变量而言，如果确定它被分配在堆上还是栈上？
+至此，我们还剩下一个问题：对于一个 Go 局部变量，如何确定它被分配在堆上还是栈上？
 
 按照官方 FAQ [How do I know whether a variable is allocated on the heap or the stack?][16] 的解释：
 
-- Go 编译器会尽可能讲变量分配在栈上
-- 以下两种情况，编译器会将变量分配在堆上
+- Go 编译器会尽可能将变量分配在栈上
+- 以下两种情况，Go 编译器会将变量分配在堆上
     + 如果一个变量被取地址（has its address taken），并且被逃逸分析（[escape analysis][17]）识别为 “逃逸到堆”（escapes to heap）
     + 如果一个变量很大（very large）
 
 ### 1. 逃逸分析
 
-以这段使用 iter 包的代码为例：
+以使用 iter 包的这段代码为例：
 
 ```go
 package main
@@ -132,7 +132,7 @@ examples/go_mem/main.go:6:13: i declared and not used
 
 按照前面的分析，从 “make([]struct {}, iter.n) escapes to heap” 的信息，我们推断：`make([]struct {}, iter.n)` 会被分配在堆上。
 
-到这里，我们最初的疑问似乎已经得到了答案：`make([]struct {}, iter.n)` 一定会引发分配，那是 Brad Fitzpatrick 的注释写错了吗？
+到这里，我们最初的疑惑似乎已经有了答案：`make([]struct {}, iter.n)` 一定会引发堆分配，那是 Brad Fitzpatrick 的注释写错了吗？
 
 ### 2. 内存分配器追踪
 
@@ -142,13 +142,13 @@ examples/go_mem/main.go:6:13: i declared and not used
 $ GODEBUG=allocfreetrace=1 go run examples/go_mem/main.go 2>&1 | grep examples
 ```
 
-因为内存分配器追踪会打印很多由 runtime 引发的分配信息，所以我们用 `grep examples` 来过滤出仅仅由示例程序引发的分配信息，但是这里的输出结果为空，表明 `make([]struct {}, iter.n)` 没有引发任何堆分配。
+因为进行内存分配器追踪时，很多由 runtime 引发的分配信息也会被打印出来，所以我们用 `grep examples` 来过滤显示仅仅由示例程序引发的分配信息，但是这里的输出结果为空，表明 `make([]struct {}, iter.n)` 没有引发任何堆分配。
 
 内存分配器追踪的结论与逃逸分析的结论截然相反！那到底哪个结论是对的呢？
 
 ### 3. 汇编分析
 
-黔驴技穷之际，[Go's Memory Allocator - Overview][19] 给了我提示：
+黔驴技穷之际，[Go's Memory Allocator - Overview][19] 这篇文章给了我提示：
 
 > So, we know that i is going to be allocated on the heap. But how does the runtime set that up? With the compiler’s help! **We can get an idea from reading the generated assembly.**
 
@@ -210,7 +210,7 @@ type slice struct {
 
 - makeslice 函数中：slice 结构体正是我们在第一节提到的 Go 切片 —— array 是指向数组片段的指针，len 是数组片段的长度，cap 是数组片段的最大长度。
 - makeslice 函数中：array 的值来自 p，而 p 则是一个指针，它指向由 mallocgc 分配得到的底层数组。
-- mallocgc 函数中：因为空结构体的 size 为 0，所以 mallocgc 并没有实际进行堆分配；由于没有执行到 tracealloc 的地方，所以内存分配器追踪时，不会采集到相关的分配信息。
+- mallocgc 函数中：因为空结构体的 size 为 0，所以 mallocgc 并没有实际进行堆分配；由于没有执行到 tracealloc 的地方，所以进行内存分配器追踪时，不会采集到相关的分配信息。
 - makeslice 函数中：切片 slice 本身是以结构体的形式返回的，所以只会被分配在栈上。
 
 
@@ -221,7 +221,7 @@ type slice struct {
 - `make([]struct{}, n)` 只会被分配在栈上，而不会被分配在堆上。
 - Brad Fitzpatrick 的注释是对的，并且他的意思是 “不会引发堆分配”。
 - 逃逸分析识别出 escapes to heap，并不一定就是堆分配，也可能是栈分配。
-- 内存分配器追踪，如果采集不到堆分配信息，那一定是分配在栈上。
+- 内存分配器追踪时，如果采集不到堆分配信息，那一定只有栈分配。
 
 
 ## 五、思考题
