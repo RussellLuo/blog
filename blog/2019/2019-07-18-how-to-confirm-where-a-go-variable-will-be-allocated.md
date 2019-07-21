@@ -79,9 +79,8 @@ func N(n int) []struct{} {
 Go 变量主要分为两种：
 
 - 全局变量
-    + 会被标记为一些特殊的 [符号类型][13]，最终被分配在堆上还是栈上目前尚不清楚，不过不是本文讨论的重点。
+    + 会被 Go 编译器标记为一些特殊的 [符号类型][13]，分配在堆上还是栈上目前尚不清楚，不过不是本文讨论的重点。
 - 局部变量
-    + 这里还有个闭包（[closure][14]）的概念，参考 [Where are variables in a closure stored - stack or heap?][15] 的说法，猜测应该是分配在栈上，也不是本文讨论的重点。
 
 所以综上，对于在函数中定义的 Go 局部变量：要么被分配在堆上，要么被分配在栈上。
 
@@ -90,11 +89,11 @@ Go 变量主要分为两种：
 
 至此，我们还剩下一个问题：对于一个 Go 局部变量，如何确定它被分配在堆上还是栈上？
 
-按照官方 FAQ [How do I know whether a variable is allocated on the heap or the stack?][16] 的解释：
+按照官方 FAQ [How do I know whether a variable is allocated on the heap or the stack?][14] 的解释：
 
 - Go 编译器会尽可能将变量分配在栈上
 - 以下两种情况，Go 编译器会将变量分配在堆上
-    + 如果一个变量被取地址（has its address taken），并且被逃逸分析（[escape analysis][17]）识别为 “逃逸到堆”（escapes to heap）
+    + 如果一个变量被取地址（has its address taken），并且被逃逸分析（[escape analysis][15]）识别为 “逃逸到堆”（escapes to heap）
     + 如果一个变量很大（very large）
 
 ### 1. 逃逸分析
@@ -136,23 +135,23 @@ examples/go_mem/main.go:6:13: i declared and not used
 
 ### 2. 内存分配器追踪
 
-除了逃逸分析，Go 还提供了一种叫内存分配器追踪（[Memory Allocator Trace][18]）的方法，用于细粒度地分析由程序引发的所有堆分配（和释放）操作：
+除了逃逸分析，Go 还提供了一种叫内存分配器追踪（[Memory Allocator Trace][16]）的方法，用于细粒度地分析由程序引发的所有堆分配（和释放）操作：
 
 ```bash
-$ GODEBUG=allocfreetrace=1 go run examples/go_mem/main.go 2>&1 | grep examples
+$ GODEBUG=allocfreetrace=1 go run examples/go_mem/main.go 2>&1 | grep -C 10 examples/go_mem
 ```
 
-因为进行内存分配器追踪时，很多由 runtime 引发的分配信息也会被打印出来，所以我们用 `grep examples` 来过滤显示仅仅由示例程序引发的分配信息，但是这里的输出结果为空，表明 `make([]struct {}, iter.n)` 没有引发任何堆分配。
+因为进行内存分配器追踪时，很多由 runtime 引发的分配信息也会被打印出来，所以我们用 grep 进行过滤，只显示由用户代码（user code）引发的分配信息。然而这里的输出结果为空，表明 `make([]struct {}, iter.n)` 没有引发任何堆分配。
 
 内存分配器追踪的结论与逃逸分析的结论截然相反！那到底哪个结论是对的呢？
 
 ### 3. 汇编分析
 
-黔驴技穷之际，[Go's Memory Allocator - Overview][19] 这篇文章给了我提示：
+黔驴技穷之际，[Go's Memory Allocator - Overview][17] 这篇文章给了我提示：
 
 > So, we know that i is going to be allocated on the heap. But how does the runtime set that up? With the compiler’s help! **We can get an idea from reading the generated assembly.**
 
-关于 Go 汇编（assembly），推荐大家阅读 [Go internals, Chapter 1: Go assembly][20]。
+关于 Go 汇编（assembly），推荐大家阅读 [Go internals, Chapter 1: Go assembly][18]。
 
 下面我们来看看示例代码对应的汇编：
 
@@ -170,7 +169,7 @@ $ go tool compile -I $GOPATH/pkg/darwin_amd64 -S examples/go_mem/main.go
 
 可以看到，其中有一处对 `runtime.makeslice(SB)` 的调用，显然是由 `make([]struct{}, n)` 引发的。
 
-查看 [runtime.makeslice][21] 的源码：
+查看 [runtime.makeslice][19] 的源码：
 
 ```go
 func makeslice(et *_type, len, cap int) slice {
@@ -180,7 +179,7 @@ func makeslice(et *_type, len, cap int) slice {
 }
 ```
 
-其中，[mallocgc][22] 的源码如下：
+其中，[mallocgc][20] 的源码如下：
 
 ```go
 func mallocgc(size uintptr, typ *_type, needzero bool) unsafe.Pointer {
@@ -196,7 +195,7 @@ func mallocgc(size uintptr, typ *_type, needzero bool) unsafe.Pointer {
 }
 ```
 
-[slice][23] 对应的结构体如下：
+[slice][21] 对应的结构体如下：
 
 ```go
 type slice struct {
@@ -229,16 +228,17 @@ type slice struct {
 - 如果换成 `make([]int, n)`，结果还会是栈分配吗？
 - 如果换成 `make([]int, 4)` 呢？
 - 除了空结构体 `make([]struct{}, n)` 的特例，还有哪些 “被逃逸分析识别为 escapes to heap，但其实是栈分配” 的案例？
+- Go 支持闭包（[closure][23]），那么闭包中的变量，又是分配在哪里的？（[Where are variables in a closure stored - stack or heap?][24] 说是分配在栈上，对于 Go 也是成立的吗？）
 
 
 ## 六、相关阅读
 
 - [The empty struct][3]
 - [Go Slices: usage and internals][4]
-- [Escape analysis][17]
-- [Go's Memory Allocator - Overview][19]
-- [Go internals, Chapter 1: Go assembly][20]
-- [Five things that make Go fast][24]
+- [Escape analysis][15]
+- [Go's Memory Allocator - Overview][17]
+- [Go internals, Chapter 1: Go assembly][18]
+- [Five things that make Go fast][22]
 
 
 [1]: https://github.com/bradfitz/iter
@@ -254,14 +254,14 @@ type slice struct {
 [11]: https://en.wikipedia.org/wiki/Garbage_collection_(computer_science)
 [12]: https://golang.org/doc/effective_go.html#goroutines
 [13]: https://github.com/golang/go/blob/go1.11.4/src/cmd/internal/objabi/symkind.go#L46-L57
-[14]: https://golang.org/ref/spec#Function_literals
-[15]: https://stackoverflow.com/questions/29225834/where-are-variables-in-a-closure-stored-stack-or-heap
-[16]: https://golang.org/doc/faq#stack_or_heap
-[17]: https://dave.cheney.net/high-performance-go-workshop/dotgo-paris.html#escape_analysis
-[18]: https://github.com/golang/go/wiki/Performance#memory-allocator-trace
-[19]: https://andrestc.com/post/go-memory-allocation-pt1/
-[20]: https://cmc.gitbook.io/go-internals/chapter-i-go-assembly
-[21]: https://github.com/golang/go/blob/go1.11.4/src/runtime/slice.go#L55-L72
-[22]: https://github.com/golang/go/blob/go1.11.4/src/runtime/malloc.go#L773-L1001
-[23]: https://github.com/golang/go/blob/go1.11.4/src/runtime/slice.go#L12-L16
-[24]: https://dave.cheney.net/2014/06/07/five-things-that-make-go-fast
+[14]: https://golang.org/doc/faq#stack_or_heap
+[15]: https://dave.cheney.net/high-performance-go-workshop/dotgo-paris.html#escape_analysis
+[16]: https://github.com/golang/go/wiki/Performance#memory-allocator-trace
+[17]: https://andrestc.com/post/go-memory-allocation-pt1/
+[18]: https://cmc.gitbook.io/go-internals/chapter-i-go-assembly
+[19]: https://github.com/golang/go/blob/go1.11.4/src/runtime/slice.go#L55-L72
+[20]: https://github.com/golang/go/blob/go1.11.4/src/runtime/malloc.go#L773-L1001
+[21]: https://github.com/golang/go/blob/go1.11.4/src/runtime/slice.go#L12-L16
+[22]: https://dave.cheney.net/2014/06/07/five-things-that-make-go-fast
+[23]: https://golang.org/ref/spec#Function_literals
+[24]: https://stackoverflow.com/questions/29225834/where-are-variables-in-a-closure-stored-stack-or-heap
