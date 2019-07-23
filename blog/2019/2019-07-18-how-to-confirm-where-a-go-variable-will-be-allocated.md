@@ -82,7 +82,7 @@ Go 变量主要分为两种：
     + 会被 Go 编译器标记为一些特殊的 [符号类型][13]，分配在堆上还是栈上目前尚不清楚，不过不是本文讨论的重点。
 - 局部变量
 
-所以综上，对于在函数中定义的 Go 局部变量：要么被分配在堆上，要么被分配在栈上。
+所以综上，对于在函数中定义的 **Go 局部变量：要么被分配在堆上，要么被分配在栈上**。
 
 
 ## 三、确定 Go 变量最终的分配位置
@@ -123,10 +123,9 @@ go version go1.11.4 darwin/amd64
 $ go build -gcflags='-m -m' examples/go_mem/main.go
 # command-line-arguments
 examples/go_mem/main.go:5:6: cannot inline main: unhandled op RANGE
-examples/go_mem/main.go:6:30: inlining call to iter.N func(int) []struct {} { return make([]struct {}, iter.n) }
-examples/go_mem/main.go:6:30: make([]struct {}, iter.n) escapes to heap
-examples/go_mem/main.go:6:30: 	from make([]struct {}, iter.n) (non-constant size) at ./main.go:6:30
-examples/go_mem/main.go:6:13: i declared and not used
+examples/go_mem/main.go:6:18: inlining call to iter.N func(int) []struct {} { return make([]struct {}, iter.n) }
+examples/go_mem/main.go:6:18: make([]struct {}, iter.n) escapes to heap
+examples/go_mem/main.go:6:18: 	from make([]struct {}, iter.n) (non-constant size) at ./main.go:6:18
 ```
 
 按照前面的分析，从 “make([]struct {}, iter.n) escapes to heap” 的信息，我们推断：`make([]struct {}, iter.n)` 会被分配在堆上。
@@ -209,7 +208,7 @@ type slice struct {
 
 - makeslice 函数中：slice 结构体正是我们在第一节提到的 Go 切片 —— array 是指向数组片段的指针，len 是数组片段的长度，cap 是数组片段的最大长度。
 - makeslice 函数中：array 的值来自 p，而 p 则是一个指针，它指向由 mallocgc 分配得到的底层数组。
-- mallocgc 函数中：因为空结构体的 size 为 0，所以 mallocgc 并没有实际进行堆分配；由于没有执行到 tracealloc 的地方，所以进行内存分配器追踪时，不会采集到相关的分配信息。
+- mallocgc 函数中：**因为空结构体的 size 为 0，所以 mallocgc 并没有实际进行堆分配**；由于没有执行到 tracealloc 的地方，所以进行内存分配器追踪时，不会采集到相关的分配信息。
 - makeslice 函数中：切片 slice 本身是以结构体的形式返回的，所以只会被分配在栈上。
 
 
@@ -220,7 +219,17 @@ type slice struct {
 - `make([]struct{}, n)` 只会被分配在栈上，而不会被分配在堆上。
 - Brad Fitzpatrick 的注释是对的，并且他的意思是 “不会引发堆分配”。
 - 逃逸分析识别出 escapes to heap，并不一定就是堆分配，也可能是栈分配。
-- 内存分配器追踪时，如果采集不到堆分配信息，那一定只有栈分配。
+- 进行内存分配器追踪时，如果采集不到堆分配信息，那一定只有栈分配。
+
+最后，我们来解答文章标题提出的疑问 —— 如何确定一个 Go 变量会被分配在哪里？对此，我们的答案是：
+
+1. 先对代码作**逃逸分析**。
+    - 如果该变量被识别为 escapes to heap，那么它十有八九是被分配在堆上。
+    - 如果该变量被识别为 does not escape，或者没有与之相关的分析结果，那么它一定是被分配在栈上。
+2. 如果对 escapes to heap 心存疑惑，就对代码作**内存分配器追踪**。
+    - 如果有采集到与该变量相关的分配信息，那么它一定是被分配在堆上。
+    - 否则，该变量一定是被分配在栈上。
+3. 此外，如果想知道 Go 编译器是如何将变量分配在堆上或者栈上的，可以去**分析 Go 汇编（以及 runtime 源码）**。
 
 
 ## 五、思考题
