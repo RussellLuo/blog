@@ -68,8 +68,9 @@ title: 测试金字塔
 
 测试什么？
 
-- 至少应该测试类的公共方法
-- 如果类复杂到需要测试私有方法，考虑从设计上拆分类，把这些私有方法变成另外一个类的公共方法
+- 通常只测试一个类的公共方法
+- 如果一个类复杂到需要测试它的私有方法
+    + 考虑从设计上拆分这个类，把这些私有方法变成另一个类的公共方法
 
 测试结构（[Arrange-Act-Assert](https://xp123.com/articles/3a-arrange-act-assert/) 或者 [Given-When-Then](https://martinfowler.com/bliki/GivenWhenThen.html)）
 
@@ -84,13 +85,13 @@ title: 测试金字塔
 
 常见的外部依赖有：
 
-- 数据库（如 MySQL/Redis/Elasticsearch）
+- 数据库（如 MySQL、Redis、Elasticsearch）
 - 消息队列（如 Kafka）
-- 外部服务（如 AWS S3)
+- 外部服务（如 SendCloud、S3)
     + 进行契约测试
         - 编写消费方测试
         - 同时为外部服务编写提供方测试？
-            + 通常不需要。因为成熟的服务提供方往往会对 API 做版本控制；而且废弃旧版本 API 时，也会通知到服务消费方。
+            + 通常不需要。因为成熟的服务提供方往往会对 API 做版本控制；而且在废弃旧版本 API 之前，也会通知到服务消费方。
 
 
 ## 五、契约测试
@@ -105,14 +106,14 @@ title: 测试金字塔
 
 提供方和消费方之间的通信方式，常见的有：
 
-    - RPC 接口
-        + HTTP/JSON
-        + gRPC
-    - 异步事件
+- RPC 接口
+    + HTTP/JSON
+    + gRPC
+- 异步事件
 
 ### 3. 契约测试的特征
 
-- 消费方编写消费方测试，并生成一个协议文件（[JSON 示例](https://github.com/hamvocke/spring-testing-consumer/blob/master/target/pacts/person_consumer-person_provider.json)）
+- 消费方编写消费方测试，并生成一个协议文件（[Pact](https://docs.pact.io/) 的 [JSON 示例](https://github.com/hamvocke/spring-testing-consumer/blob/master/target/pacts/person_consumer-person_provider.json)）
 - 提供方根据协议文件，编写提供方测试
 
 
