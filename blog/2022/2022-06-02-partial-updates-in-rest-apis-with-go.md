@@ -221,7 +221,7 @@ PATCH /people/1 HTTP/1.1
 有经验的读者可能会发现，Go 的 JSON 反序列化其实有两种：
 
 - 将 JSON 反序列化为结构体（优势：操作直观方便；不足：有零值问题）
-- 将 JSON 反序列化为 `map[string]interface{}`（优势：能够准确表达 JSON 数据的有无特定字段；不足：操作不够直观方便）
+- 将 JSON 反序列化为 `map[string]interface{}`（优势：能够准确表达 JSON 中有无特定字段；不足：操作不够直观方便）
 
 可想而知，如果我们直接把 Person 从结构体改为 `map[string]interface{}`，操作体验可能会比使用带指针的结构体更糟糕！
 
