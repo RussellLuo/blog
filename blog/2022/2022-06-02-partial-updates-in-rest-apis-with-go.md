@@ -76,7 +76,7 @@ person: {Name: Age:25 Address:{Country: Province: City:Guangzhou}}
 
 很显然，如果我们直接用 person 去更新 John 的数据，他的姓名、所在国家和省份都会被清空！
 
-那服务端该如何正确识别客户端的原始意图呢？具体到 John 的例子，在 Go 中如何做到 “只更新年龄和所在城市” 呢？
+那服务端该如何正确识别客户端的原始意图呢？具体到 John 的例子，在 Go 中如何做到 “只更新他的年龄和所在城市” 呢？
 
 
 ## 三、业界通用解法
@@ -148,7 +148,7 @@ func (p *Person) Update(other Person) {
 }
 ```
 
-参考完整代码（[Go Playground](https://go.dev/play/p/7Hqu-B5ZZDd)）不难发现，使用指针后的 Person 结构体，代码写起来会非常繁琐（尤其是 “初始化” 操作）。
+参考完整代码（[Go Playground](https://go.dev/play/p/7Hqu-B5ZZDd)）不难发现，使用指针后的 Person 结构体，操作起来会非常繁琐（尤其是 “初始化” 操作）。
 
 ### 客户端维护的 FieldMask
 
@@ -220,8 +220,8 @@ PATCH /people/1 HTTP/1.1
 
 有经验的读者可能会发现，Go 的 JSON 反序列化其实有两种：
 
-- 将 JSON 反序列化为结构体（优势：操作直观；不足：零值问题）
-- 将 JSON 反序列化为 `map[string]interface{}`（优势：没有零值问题；不足：操作没有结构体直观）
+- 将 JSON 反序列化为结构体（优势：操作直观方便；不足：有零值问题）
+- 将 JSON 反序列化为 `map[string]interface{}`（优势：能够准确表达 JSON 数据的有无特定字段；不足：操作不够直观方便）
 
 可想而知，如果我们直接把 Person 从结构体改为 `map[string]interface{}`，操作体验可能会比使用带指针的结构体更糟糕！
 
@@ -237,15 +237,15 @@ PATCH /people/1 HTTP/1.1
 
 ```go
 type Address struct {
-	Country  string `json:"country,omitempty"`
-	Province string `json:"province,omitempty"`
-	City     string `json:"city,omitempty"`
+	Country  string `json:"country"`
+	Province string `json:"province"`
+	City     string `json:"city"`
 }
 
 type Person struct {
-	Name    string  `json:"name,omitempty"`
-	Age     int     `json:"age,omitempty"`
-	Address Address `json:"address,omitempty"`
+	Name    string  `json:"name"`
+	Age     int     `json:"age"`
+	Address Address `json:"address"`
 }
 
 type UpdatePersonRequest struct {
@@ -261,7 +261,7 @@ func (req *UpdatePersonRequest) UnmarshalJSON(b []byte) error {
 }
 ```
 
-其中最核心的代码是 `UnmarshalJSON`，对应的更新代码如下：
+注意，其中最核心的代码是 `UnmarshalJSON`。对应的更新逻辑如下：
 
 ```go
 person := Person{
@@ -307,6 +307,11 @@ default:
 	person.Address = req.Address
 }
 ```
+
+个人觉得，相比其他方案而言，上述代码实现非常简单、自然（如果还有优化空间，欢迎指正和讨论👏🏻）。
+
+当然该方案也不是完美的，目前来说，我认为至少有一个瑕疵就是需要两次解码：JSON -> map -> 结构体。
+
 
 ## 五、相关阅读
 
