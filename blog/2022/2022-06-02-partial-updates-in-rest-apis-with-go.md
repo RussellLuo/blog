@@ -7,9 +7,9 @@ tags:
 title: 如何用 Go 实现 REST API 部分更新
 ---
 
-## 一、问题
+## 一、更新 John 的数据
 
-假设我们有一条数据如下：
+假设我们有一条关于 John 的数据如下：
 
 ```
 GET /people/1 HTTP/1.1
@@ -25,7 +25,7 @@ GET /people/1 HTTP/1.1
 }
 ```
 
-现在我们想更新 John 的年龄和所在城市，于是发起了一个请求：
+现在我们想更新他的年龄和所在城市，于是发起了一个请求：
 
 ```
 PATCH /people/1 HTTP/1.1
@@ -41,7 +41,7 @@ PATCH /people/1 HTTP/1.1
 作为 Go 服务端开发人员，我们如何才能正确处理这个部分更新请求呢？
 
 
-## 二、JSON 与 Go 的零值
+## 二、Go 零值与 JSON
 
 乍一看并不难，我们立马写下了结构体定义：
 
@@ -261,7 +261,7 @@ func (req *UpdatePersonRequest) UnmarshalJSON(b []byte) error {
 }
 ```
 
-注意，其中最核心的代码是 `UnmarshalJSON`。对应的更新逻辑如下：
+注意，其中最核心的代码是 `UpdatePersonRequest.UnmarshalJSON`。对应的更新逻辑如下（[完整示例](https://github.com/RussellLuo/fieldmask/blob/master/example_partial_update_test.go)）：
 
 ```go
 person := Person{
@@ -280,31 +280,34 @@ if err := json.Unmarshal(blob, req); err != nil {
 	fmt.Printf("err: %#v\n", err)
 }
 
-// Update top-level fields.
+// Update name if needed.
 if req.FieldMask.Has("name") {
 	person.Name = req.Name
 }
 
+// Update age if needed.
 if req.FieldMask.Has("age") {
 	person.Age = req.Age
 }
 
-// Update address subfields.
-addressFM, ok := req.FieldMask.FieldMask("address")
-if !ok {
-	return
-}
+// Update address if needed.
+if req.FieldMask.Has("address") {
+	fm, _ := req.FieldMask.FieldMask("address")
+	if len(fm) == 0 {
+		// Clear the entire address.
+		person.Address = req.Address
+		return
+	}
 
-switch {
-case addressFM.Has("country"):
-	person.Address.Country = req.Address.Country
-case addressFM.Has("province"):
-	person.Address.Province = req.Address.Province
-case addressFM.Has("city"):
-	person.Address.City = req.Address.City
-default:
-	// Empty address.
-	person.Address = req.Address
+	if fm.Has("country") {
+		person.Address.Country = req.Address.Country
+	}
+	if fm.Has("province") {
+		person.Address.Province = req.Address.Province
+	}
+	if fm.Has("city") {
+		person.Address.City = req.Address.City
+	}
 }
 ```
 
