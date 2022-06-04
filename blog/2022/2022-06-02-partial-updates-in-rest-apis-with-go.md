@@ -121,34 +121,41 @@ person: {Name:<nil> Age:0xc000018218 Address:0xc00000c138}, address: &{Country:<
 可以看到只有 Age 和 Address.City 的值不为 nil，于是我们只需要更新不为 nil 的字段即可：
 
 ```go
-func (p *Person) Update(other Person) {
-	if other.Name != nil {
-		p.Name = other.Name
+func (a *Address) Update(other *Address) {
+	if other.Country != nil {
+		a.Country = other.Country
 	}
-
-	if other.Age != nil {
-		p.Age = other.Age
+	if other.Province != nil {
+		a.Province = other.Province
 	}
-
-	if addr := other.Address; addr != nil {
-		// 使用指针的副作用
-		if p.Address == nil {
-			p.Address = new(Address)
-		}
-
-		switch {
-		case addr.Country != nil:
-			p.Address.Country = addr.Country
-		case addr.Province != nil:
-			p.Address.Province = addr.Province
-		case addr.City != nil:
-			p.Address.City = addr.City
-		}
+	if other.City != nil {
+		a.City = other.City
 	}
 }
 ```
 
-参考完整代码（[Go Playground](https://go.dev/play/p/7Hqu-B5ZZDd)）不难发现，使用指针后的 Person 结构体，操作起来会非常繁琐（尤其是 “初始化” 操作）。
+```go
+func (p *Person) Update(other *Person) {
+	if other.Name != nil {
+		p.Name = other.Name
+	}
+	if other.Age != nil {
+		p.Age = other.Age
+	}
+	if other.Address != nil {
+		// Side effects of using pointers
+		if p.Address == nil {
+			p.Address = new(Address)
+		}
+		p.Address.Update(other.Address)
+	}
+}
+```
+
+参考完整代码（[Go Playground](https://go.dev/play/p/XaTbJkJOAk4)）不难发现，使用指针后的 Person 结构体，操作起来会非常繁琐。比如：
+
+- 修改 address 前，需要首先保证 `p.Address` 不能为 nil
+- 此外，Initialization 初始化操作尤其麻烦
 
 ### 客户端维护的 FieldMask
 
@@ -186,7 +193,7 @@ fmt.Printf("req: %+v\n", req)
 req: {Person:{Name: Age:25 Address:{Country: Province: City:Guangzhou}} FieldMask:age,address.city}
 ```
 
-有了 FieldMask 的补充说明，服务端就能正确进行部分更新了。当然对于客户端而言，FieldMask 其实是多余的，而且维护成本也不低（特别是待更新字段较多时），这也是我认为该方案最明显的一个不足之处。
+有了 FieldMask 的补充说明，服务端就能正确进行部分更新了。但是对于客户端而言，FieldMask 其实是多余的，而且维护成本也不低（特别是待更新字段较多时），这也是我认为该方案最明显的一个不足之处。
 
 ### 改用 JSON Patch
 
@@ -225,11 +232,11 @@ PATCH /people/1 HTTP/1.1
 
 可想而知，如果我们直接把 Person 从结构体改为 `map[string]interface{}`，操作体验可能会比使用带指针的结构体更糟糕！
 
-那如果我们只是把 map 作为一个反序列化的中间结果呢？比如：
+那如果我们只是把 `map[string]interface{}` 作为一个反序列化的中间结果呢？比如：
 
-1. 首先将 JSON 反序列化为 map
-2. 然后用 map 来充当（服务端维护的）FieldMask
-3. 最后将 map 解析为结构体（幸运的是，已经有现成的库 [mapstructure](https://github.com/mitchellh/mapstructure) 可以做到！）
+1. 首先将 JSON 反序列化为 `map[string]interface{}`
+2. 然后用 `map[string]interface{}` 来充当（服务端维护的）FieldMask
+3. 最后将 `map[string]interface{}` 解析为结构体（幸运的是，已经有现成的库 [mapstructure](https://github.com/mitchellh/mapstructure) 可以做到！）
 
 通过一些探索和试验，结果表明上述想法是可行的。为此，我还专门开发了一个小巧的库 [fieldmask][5]，用来辅助实现基于该想法的部分更新。
 
@@ -261,10 +268,50 @@ func (req *UpdatePersonRequest) UnmarshalJSON(b []byte) error {
 }
 ```
 
-注意，其中最核心的代码是 `UpdatePersonRequest.UnmarshalJSON`。对应的更新逻辑如下（[完整示例](https://github.com/RussellLuo/fieldmask/blob/master/example_partial_update_test.go)）：
+注意，其中 JSON 反序列化的核心代码是 `UnmarshalJSON`。对应的更新逻辑如下（[完整示例](https://github.com/RussellLuo/fieldmask/blob/master/example_partial_update_test.go)）：
 
 ```go
-person := Person{
+func (a *Address) Update(other Address, fm fieldmask.FieldMask) {
+	if len(fm) == 0 {
+		// Clear the entire address.
+		*a = other
+		return
+	}
+
+	if fm.Has("country") {
+		a.Country = other.Country
+	}
+	if fm.Has("province") {
+		a.Province = other.Province
+	}
+	if fm.Has("city") {
+		a.City = other.City
+	}
+}
+```
+
+```go
+func (p *Person) Update(other Person, fm fieldmask.FieldMask) {
+	if len(fm) == 0 {
+		// Clear the entire person.
+		*p = other
+		return
+	}
+
+	if fm.Has("name") {
+		p.Name = other.Name
+	}
+	if fm.Has("age") {
+		p.Age = other.Age
+	}
+	if addressFM, ok := fm.FieldMask("address"); ok {
+		p.Address.Update(other.Address, addressFM)
+	}
+}
+```
+
+```go
+john := Person{
 	Name: "John",
 	Age:  20,
 	Address: Address{
@@ -276,44 +323,14 @@ person := Person{
 
 blob := []byte(`{"age": 25, "address": {"city": "Guangzhou"}}`)
 req := new(UpdatePersonRequest)
-if err := json.Unmarshal(blob, req); err != nil {
-	fmt.Printf("err: %#v\n", err)
-}
+_ = json.Unmarshal(blob, req)
 
-// Update name if needed.
-if req.FieldMask.Has("name") {
-	person.Name = req.Name
-}
-
-// Update age if needed.
-if req.FieldMask.Has("age") {
-	person.Age = req.Age
-}
-
-// Update address if needed.
-if req.FieldMask.Has("address") {
-	fm, _ := req.FieldMask.FieldMask("address")
-	if len(fm) == 0 {
-		// Clear the entire address.
-		person.Address = req.Address
-		return
-	}
-
-	if fm.Has("country") {
-		person.Address.Country = req.Address.Country
-	}
-	if fm.Has("province") {
-		person.Address.Province = req.Address.Province
-	}
-	if fm.Has("city") {
-		person.Address.City = req.Address.City
-	}
-}
+john.Update(req.Person, req.FieldMask)
 ```
 
-个人觉得，相比其他方案而言，上述代码实现非常简单、自然（如果还有优化空间，欢迎指正和讨论👏🏻）。
+个人觉得，相比其他方案而言，上述代码实现非常简单、自然（如果还有优化空间，欢迎指正👏🏻）。
 
-当然该方案也不是完美的，目前来说，我认为至少有一个瑕疵就是需要两次解码：JSON -> map -> 结构体。
+当然该方案也不是完美的，目前来说，我认为至少有一个瑕疵就是需要两次解码：JSON -> `map[string]interface{}` -> 结构体，会增加一点性能上的开销。
 
 
 ## 五、相关阅读
