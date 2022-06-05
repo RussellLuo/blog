@@ -341,7 +341,7 @@ john.Update(req.Person, req.FieldMask)
 
 
 [1]: https://dave.cheney.net/2013/01/19/what-is-the-zero-value-and-why-is-it-useful
-[2]: https://google.aip.dev/134
+[2]: https://developers.google.com/protocol-buffers/docs/reference/google.protobuf?hl=en#fieldmask
 [3]: https://datatracker.ietf.org/doc/html/rfc7396
 [4]: https://datatracker.ietf.org/doc/html/rfc6902
 [5]: https://github.com/RussellLuo/fieldmask
